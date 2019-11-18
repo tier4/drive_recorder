@@ -102,19 +102,19 @@ struct drive_recorder {
     ros::Rate rate(1);
     managed_shared_memory shm(open_only, SHM_NAME);
     //共有メモリのフラグ
-    auto stopReq = shm.find<bool>("SHM_DRStopRequest");
+    volatile bool* stopReq = shm.find<bool>("SHM_DRStopRequest").first;
     while (ros::ok()){
       ros::spinOnce();
       switch(emflag){
         case emergency_none:
-          if(*stopReq.first == true){
+          if(*stopReq == true){
             stopRequested();
           }
           break;
         case emergency_progress_done:
           //ファイルのコピーが終わった状態。
           //共有メモリのフラグが落ちるのを待つ。
-          if(*stopReq.first == false){
+          if(*stopReq == false){
             ROS_INFO("emergency_progress_done -> none");
             emflag = emergency_none;
           }

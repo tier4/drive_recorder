@@ -45,15 +45,16 @@ struct drive_recorder {
     //logディレクトリのフィアルを列挙
     for( fs::directory_iterator src_file(src_directory); src_file != end; src_file++){
       //.. .だったら、飛ばす。
-      if( src_file->path().filename_is_dot() || src_file->path().filename_is_dot_dot() ){//src_file->path().extension() != ".bag" ){
+      if( src_file->path().filename_is_dot() || src_file->path().filename_is_dot_dot() ){
         continue;
       }
       //そのファイルの最終書き込み時刻
       time_t mod_t = fs::last_write_time(src_file->path());
       //保存すべき時刻以降のファイルはコピる。
-      if( mod_t >= timer_begin.sec ){
+      time_t diff = mod_t - timer_begin.sec;
+      if( diff > 0 ){
         auto dst_filename = dst_dirname + src_file->path().filename().string();
-        ROS_INFO("log file:%s -> %s mod time:%d", src_file->path().string().c_str(), dst_filename.c_str(), mod_t);
+        ROS_INFO("log file:%s -> %s mod time:%d(%d)", src_file->path().string().c_str(), dst_filename.c_str(), mod_t, diff );
         fs::path dst(dst_filename);
         fs::copy_file(src_file->path(), dst);
       }
@@ -126,13 +127,14 @@ struct drive_recorder {
     }
   }
   //unit未満の端数を繰り上げる。桁溢れ、０割に注意
-  int roundup(int num, int unit){
+  static int roundup(int num, int unit){
     assert(unit > 0);
     assert(num > 0);
     int result = num;
     int remain = num % unit;
     if( remain > 0 ){
-      result += unit;
+      result = 1 + num / unit;
+      result *= unit;
     }
     assert(result > 0);
     return result;
@@ -140,7 +142,7 @@ struct drive_recorder {
   //before異常発生時からどれだけの時間遡ってコピーするか(秒)
   //after異常発生後にどれだけ待ってからコピーを開始するか(秒)
   //bag_period rosbagが生成するlogファイルの時間間隔(秒)
-  drive_recorder(int _before, int _after, int bag_period){
+  drive_recorder(time_t _before, time_t _after, time_t bag_period){
     //bag_period分切り上げる。
     _after = roundup(_after, bag_period);
     _before = roundup(_before, bag_period);
@@ -154,7 +156,6 @@ struct drive_recorder {
 
 int main(int argc, char**argv){
   ros::init(argc, argv, "drive_recoorder");
-  //shared_memory_object::remove(SHM_NAME);
   drive_recorder d(10 * 60, 10, 60);
   d.run();
   return 0;

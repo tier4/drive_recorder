@@ -1,7 +1,23 @@
+/*
+ * Copyright 2015-2019 Autoware Foundation. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 
 #include <ros/ros.h>
 #include <std_msgs/Header.h>
+#include <std_msgs/String.h>
 #include <string>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -16,6 +32,7 @@ using boost::interprocess::shared_memory_object;
 namespace fs = boost::filesystem;
 using namespace std;
 
+
 struct drive_recorder {
   //タイマが満了してから、ログのファイルを保存するために遡る時間
   ros::Duration record_time_period;
@@ -23,6 +40,16 @@ struct drive_recorder {
   ros::Duration timer_exprie_period;
   //rosbagがlogを出力する場所
   string src_dirname = "log/";
+
+  static void showTopics(){
+    ros::master::V_TopicInfo master_topics;
+    ros::master::getTopics(master_topics);
+
+    for (ros::master::V_TopicInfo::iterator it = master_topics.begin() ; it != master_topics.end(); it++) {
+      const ros::master::TopicInfo& info = *it;
+      ROS_INFO("topic %s %s", info.name.c_str(), info.datatype.c_str() );
+    }
+  }
 
   //異常発生からのtimer待ちのcallback
   void timer_callback(const ros::TimerEvent& te){
@@ -56,7 +83,11 @@ struct drive_recorder {
         auto dst_filename = dst_dirname + src_file->path().filename().string();
         ROS_INFO("log file:%s -> %s mod time:%d(%d)", src_file->path().string().c_str(), dst_filename.c_str(), mod_t, diff );
         fs::path dst(dst_filename);
-        fs::copy_file(src_file->path(), dst);
+        try{
+          fs::copy_file(src_file->path(), dst);
+        }catch(boost::filesystem::filesystem_error& e){
+          ROS_INFO("copy_file failed");
+        }
       }
     }
     ROS_INFO("emergency_done");
@@ -76,6 +107,9 @@ struct drive_recorder {
     emergency_progress_done = 3,//コピー完了。emergecy解除待ち
   };
   emergency_state emflag = emergency_none;
+  void decision_maker_state_callback(const std_msgs::String& msg){
+    ROS_INFO("/decisin_maker/state subscribed (%s) ", msg.data.c_str());
+  }
   //emergency_handlerのrecord_cmdを受けるcallback
   void record_cmd_callback(const std_msgs::Header header_msg){
     ROS_INFO("drive recorder subscribed (%d:%d) ", header_msg.stamp.sec, header_msg.stamp.nsec);
@@ -100,6 +134,7 @@ struct drive_recorder {
   }
   void run() {
     ros::Subscriber sub = n.subscribe("record_cmd", 1, &drive_recorder::record_cmd_callback, this);
+    ros::Subscriber sub2 = n.subscribe("decision_maker/state", 1, &drive_recorder::decision_maker_state_callback, this);
     ros::Rate rate(1);
     managed_shared_memory shm(open_only, SHM_NAME);
     //共有メモリのフラグ
@@ -119,6 +154,7 @@ struct drive_recorder {
             ROS_INFO("emergency_progress_done -> none");
             emflag = emergency_none;
           }
+          //showTopics();
           break;       
         default:
           break;

@@ -16,6 +16,7 @@
 
 
 #include <ros/ros.h>
+#include <ros/assert.h>
 #include <std_msgs/Header.h>
 #include <std_msgs/String.h>
 #include <string>
@@ -33,7 +34,7 @@ namespace fs = boost::filesystem;
 using std::string;
 using std::to_string;
 
-struct drive_recorder 
+class DriveRecorder 
 {
   //タイマが満了してから、ログのファイルを保存するために遡る時間
   ros::Duration record_time_period;
@@ -53,18 +54,7 @@ struct drive_recorder
       ROS_INFO("topic %s %s", info.name.c_str(), info.datatype.c_str() );
     }
   }
-  /*
-  ros::NodeHandle private_nh_;
-  void getParameters(){
-    // parameter settings
-    private_nh_.param<std::string>("save_filename", filename_, std::string("data.txt"));
-    private_nh_.param<std::string>("pose_topic", pose_topic_, std::string("current_pose"));
-    private_nh_.param<std::string>("velocity_topic", velocity_topic_, std::string("current_velocity"));
-    private_nh_.param<double>("interval", interval_, 1.0);
-    private_nh_.param<bool>("save_velocity", save_velocity_, false);
-  }
-  */
-
+  
   //異常発生からのtimer待ちのcallback
   void timer_callback(const ros::TimerEvent& te)
   {
@@ -87,28 +77,26 @@ struct drive_recorder
     //logディレクトリのフィアルを列挙
     for( fs::directory_iterator src_file(src_directory); src_file != end; src_file++)
     {
-      //.. .だったら、飛ばす。
-      if( src_file->path().filename_is_dot() || src_file->path().filename_is_dot_dot() )
-      {
-        continue;
-      }
-      //そのファイルの最終書き込み時刻
-      time_t mod_t = fs::last_write_time(src_file->path());
-      //保存すべき時刻以降のファイルはコピる。
-      time_t diff = mod_t - timer_begin.sec;
-      if( diff > 0 )
-      {
-        auto dst_filename = dst_dirname + src_file->path().filename().string();
-        ROS_INFO("log file:%s -> %s mod time:%d(%d)", src_file->path().string().c_str(), dst_filename.c_str(), mod_t, diff );
-        fs::path dst(dst_filename);
-        try
+      try{
+        //.. .だったら、飛ばす。
+        auto ext = src_file->path().extension();
+        if( ext != ".bag" && ext != ".active" )
+          continue;
+        //そのファイルの最終書き込み時刻
+        time_t mod_t = fs::last_write_time(src_file->path());
+        //保存すべき時刻以降のファイルはコピる。
+        time_t diff = mod_t - timer_begin.sec;
+        if( diff > 0 )
         {
+          auto dst_filename = dst_dirname + src_file->path().filename().string();
+          ROS_INFO("log file:%s -> %s mod time:%d(%d)", src_file->path().string().c_str(), dst_filename.c_str(), (int)mod_t, (int)diff );
+          fs::path dst(dst_filename);
           fs::copy_file(src_file->path(), dst);
         }
-        catch(boost::filesystem::filesystem_error& e)
-        {
+      }
+      catch(boost::filesystem::filesystem_error& e) //rosbagが非同期的にbagファイルに書き込みを行う。そのため.activeファイルが消えてcopyに失敗する可能性がある。
+      {
           ROS_INFO("copy_file failed");
-        }
       }
     }
     ROS_INFO("emergency_done");
@@ -137,16 +125,17 @@ struct drive_recorder
   void record_cmd_callback(const std_msgs::Header header_msg)
   {
     ROS_INFO("drive recorder subscribed (%d:%d) ", header_msg.stamp.sec, header_msg.stamp.nsec);
-    //assert(emflag == none);
+    //ROS_ASSERT(emflag == none);
     start_timer();
   }
   //タイマ開始。
-  void start_timer(){
+  void start_timer()
+  {
     if( emflag == emergency_none )
     {
       emflag = emergency_requested;
       ROS_INFO("start timer (%d) ", timer_exprie_period.sec );
-      timer = n.createTimer(timer_exprie_period, &drive_recorder::timer_callback, this, true);//一定時間後にtimer_callbackを呼ぶ。oneshot = trueなので一回で終了する。
+      timer = n.createTimer(timer_exprie_period, &DriveRecorder::timer_callback, this, true);//一定時間後にtimer_callbackを呼ぶ。oneshot = trueなので一回で終了する。
     }
     else
     {
@@ -160,10 +149,26 @@ struct drive_recorder
     ROS_INFO("stop requedted");
     start_timer();
   }
+  //unit未満の端数を繰り上げる。桁溢れ、０割に注意
+  static int roundup(int num, int unit)
+  {
+    ROS_ASSERT(unit > 0);
+    ROS_ASSERT(num > 0);
+    int result = num;
+    int remain = num % unit;
+    if( remain > 0 )
+    {
+      result = 1 + num / unit;
+      result *= unit;
+    }
+    ROS_ASSERT(result > 0);
+    return result;
+  }
+  public:
   void run()
   {
-    ros::Subscriber sub = n.subscribe("record_cmd", 1, &drive_recorder::record_cmd_callback, this);
-    ros::Subscriber sub2 = n.subscribe("decision_maker/state", 1, &drive_recorder::decision_maker_state_callback, this);
+    ros::Subscriber sub = n.subscribe("record_cmd", 50, &DriveRecorder::record_cmd_callback, this);
+    ros::Subscriber sub2 = n.subscribe("decision_maker/state", 50, &DriveRecorder::decision_maker_state_callback, this);
     ros::Rate rate(1);
     managed_shared_memory shm(open_only, SHM_NAME);
     //共有メモリのフラグ
@@ -195,25 +200,10 @@ struct drive_recorder
       rate.sleep();
     }
   }
-  //unit未満の端数を繰り上げる。桁溢れ、０割に注意
-  static int roundup(int num, int unit)
-  {
-    assert(unit > 0);
-    assert(num > 0);
-    int result = num;
-    int remain = num % unit;
-    if( remain > 0 )
-    {
-      result = 1 + num / unit;
-      result *= unit;
-    }
-    assert(result > 0);
-    return result;
-  }
   //before異常発生時からどれだけの時間遡ってコピーするか(秒)
   //after異常発生後にどれだけ待ってからコピーを開始するか(秒)
   //bag_period rosbagが生成するlogファイルの時間間隔(秒)
-  drive_recorder(time_t _before, time_t _after, time_t bag_period)
+  DriveRecorder(time_t _before, time_t _after, time_t bag_period)//: private_nh_("~")
   {
     //bag_period分切り上げる。
     _after = roundup(_after, bag_period);
@@ -229,7 +219,7 @@ struct drive_recorder
 int main(int argc, char**argv)
 {
   ros::init(argc, argv, "drive_recoorder");
-  drive_recorder d(10 * 60, 10, 60);
+  DriveRecorder d(10 * 60, 10, 60);
   d.run();
   return 0;
 }

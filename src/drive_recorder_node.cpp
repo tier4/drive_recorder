@@ -54,7 +54,7 @@ class DriveRecorder
       ROS_INFO("topic %s %s", info.name.c_str(), info.datatype.c_str() );
     }
   }
-  
+
   //異常発生からのtimer待ちのcallback
   void timer_callback(const ros::TimerEvent& te)
   {
@@ -117,9 +117,18 @@ class DriveRecorder
     emergency_progress_done = 3,//コピー完了。emergecy解除待ち
   };
   emergency_state emflag = emergency_none;
+  bool decision_maker_state_emergency = false;
   void decision_maker_state_callback(const std_msgs::String& msg)
   {
-    ROS_INFO("/decisin_maker/state subscribed (%s) ", msg.data.c_str());
+    ROS_INFO("/decision_maker/state subscribed (%s) ", msg.data.c_str());
+    if( msg.data == "VehicleEmergency" )
+    {
+      decision_maker_state_emergency = true;
+    }
+    else
+    {
+      decision_maker_state_emergency = false;
+    }
   }
   //emergency_handlerのrecord_cmdを受けるcallback
   void record_cmd_callback(const std_msgs::Header header_msg)
@@ -187,7 +196,7 @@ class DriveRecorder
         case emergency_progress_done:
           //ファイルのコピーが終わった状態。
           //共有メモリのフラグが落ちるのを待つ。
-          if(*stopReq == false)
+          if(*stopReq == false && decision_maker_state_emergency == false)
           {
             ROS_INFO("emergency_progress_done -> none");
             emflag = emergency_none;

@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  ros_observer
 )
 
 
@@ -119,7 +120,7 @@ catkin_package(
 include_directories(
 # include
 ${catkin_INCLUDE_DIRS}
-  ~/autoware.ai/src/autoware/common/ros_observer/include
+#  ~/autoware.ai/src/autoware/common/ros_observer/include
 )
 
 ## Declare a C++ library

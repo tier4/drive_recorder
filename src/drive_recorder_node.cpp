@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include <ros/ros.h>
 #include <ros/assert.h>
 #include <std_msgs/Header.h>

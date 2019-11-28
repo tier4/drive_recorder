@@ -1,17 +1,21 @@
 # drive_recorder
 
-build
-  >catkin build
+- How to build
+>catkin build
 
-nodeの説明
-・drive_recorder_test
-  テスト用のnode
-  driver_recorderに対してpublishしたり、共有メモリを書き換えたりする。
+- nodes
+>drive_recorder_test
+  node for testing for deive_recorder_node
+>drive_recorder_node
+  drive_recorder's node
 
-・テストの実行方法
-下記の通り４つのプロセスを手動で実行する。
->"roscore"実行
->./log/を作り、そこで"rosbag record --duration=60  -a --split"を実行
->"rosrun pubsubtest drive_recorder_test"を実行
->"rosrun pubsubtest drive_recorder_node"を実行
+- tesging
+>make ./backup/. If not exist the directiory, drive_recorder_node will get error and die.
+
+execute the following 4 process.
+>execute "roscore"
+>make ./log/. 
+ At the directory, execute "rosbag record --duration=60  -a --split".
+>execute "rosrun drive_recorder drive_recorder_test"
+>execute "rosrun drive_recorder drive_recorder_node"
 

@@ -38,12 +38,10 @@ class DriveRecorder
   //タイマが満了してから、ログのファイルを保存するために遡る時間
   ros::Duration record_time_period_;
   //異常発生時に生成するタイマの時間
-  ros::Duration timer_exprie_period_;
+  ros::Duration timer_expire_period_;
   //rosbagがlogを出力する場所
   string src_dirname_;
   string dst_dirname_;
-
-
 
   //異常発生からのtimer待ちのcallback
   void timerCallback(const ros::TimerEvent& te)
@@ -125,8 +123,8 @@ class DriveRecorder
     if( emflag_ == emergency_none )
     {
       emflag_ = emergency_requested;
-      ROS_INFO("start timer (%d) ", timer_exprie_period_.sec );
-      timer_ = n_.createTimer(timer_exprie_period_, &DriveRecorder::timerCallback, this, true);//一定時間後にtimerCallbackを呼ぶ。oneshot = trueなので一回で終了する。
+      ROS_INFO("start timer (%d) ", timer_expire_period_.sec );
+      timer_ = n_.createTimer(timer_expire_period_, &DriveRecorder::timerCallback, this, true);//一定時間後にtimerCallbackを呼ぶ。oneshot = trueなので一回で終了する。
     }
     else
     {
@@ -217,7 +215,7 @@ class DriveRecorder
     ros::Duration after(_after);
 
     record_time_period_ = before + after;
-    timer_exprie_period_ = after;
+    timer_expire_period_ = after;
   }
 };
 

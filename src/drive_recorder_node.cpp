@@ -43,17 +43,7 @@ class DriveRecorder
   string src_dirname_;
   string dst_dirname_;
 
-  static void showTopics()
-  {
-    ros::master::V_TopicInfo master_topics;
-    ros::master::getTopics(master_topics);
 
-    for (ros::master::V_TopicInfo::iterator it = master_topics.begin() ; it != master_topics.end(); it++)
-    {
-      const ros::master::TopicInfo& info = *it;
-      ROS_INFO("topic %s %s", info.name.c_str(), info.datatype.c_str() );
-    }
-  }
 
   //異常発生からのtimer待ちのcallback
   void timerCallback(const ros::TimerEvent& te)
@@ -209,7 +199,6 @@ class DriveRecorder
             ROS_INFO("emergency_progress_done -> none");
             emflag_ = emergency_none;
           }
-          //showTopics();
           break;       
         default:
           break;

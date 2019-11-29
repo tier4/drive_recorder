@@ -9,7 +9,7 @@
 >drive_recorder_node
   drive_recorder's node
 
-- tesging
+- testing
 >make ./backup/. If not exist the directiory, drive_recorder_node will get error and die.
 
 execute the following 4 process.

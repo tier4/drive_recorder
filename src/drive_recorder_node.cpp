@@ -110,8 +110,15 @@ class DriveRecorder
   void decisionMakerStateCallback(const std_msgs::String& msg)
   {
     ROS_INFO("/decision_maker/state subscribed (%s) ", msg.data.c_str());
-    decision_maker_state_emergency_ = ( msg.data.find("VehicleEmergency") == string::npos ) ? false : true;
+    if( msg.data == "VehicleEmergency" )
+    {
+      decision_maker_state_emergency_ = true;
     }
+    else
+    {
+      decision_maker_state_emergency_ = false;
+    }
+  }
   //emergency_handlerのrecord_cmdを受けるcallback
   void recordCmdCallback(const std_msgs::Header header_msg)
   {
@@ -169,15 +176,17 @@ class DriveRecorder
     ros::Subscriber sub = n_.subscribe("record_cmd", 50, &DriveRecorder::recordCmdCallback, this);
     ros::Subscriber sub2 = n_.subscribe("decision_maker/state", 50, &DriveRecorder::decisionMakerStateCallback, this);
     ros::Rate rate(1);
-    ShmDRStopRequest stopReqested_;
+    managed_shared_memory shm(open_only, SHM_NAME);
 
+    //共有メモリのフラグ
+    volatile bool* stopReq = shm.find<bool>("SHM_DRStopRequest").first;
     while (ros::ok())
     {
       ros::spinOnce();
       switch(emflag_)
       {
         case emergency_none:
-          if(stopReqested_.is_request_received())
+          if(*stopReq == true)
           {
             stopRequested();
           }
@@ -185,7 +194,7 @@ class DriveRecorder
         case emergency_progress_done:
           //ファイルのコピーが終わった状態。
           //共有メモリのフラグが落ちるのを待つ。
-          if(stopReqested_.is_request_received() == false && decision_maker_state_emergency_ == false)
+          if(*stopReq == false && decision_maker_state_emergency_ == false)
           {
             ROS_INFO("emergency_progress_done -> none");
             emflag_ = emergency_none;

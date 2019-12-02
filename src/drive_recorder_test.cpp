@@ -22,6 +22,8 @@
 #include <boost/interprocess/managed_shared_memory.hpp>
 #include <boost/interprocess/sync/interprocess_mutex.hpp>
 
+
+using boost::interprocess::interprocess_mutex;
 using boost::interprocess::managed_shared_memory;
 using boost::interprocess::shared_memory_object;
 using boost::interprocess::open_only;
@@ -37,6 +39,7 @@ int main(int argc, char**argv){
     shared_memory_object::remove(SHM_NAME);
     managed_shared_memory shm(create_only, SHM_NAME, SHM_SIZE);
     bool* stopReq = shm.construct<bool>("SHM_DRStopRequest")();
+    interprocess_mutex* p_mut_DR = shm.construct<interprocess_mutex>("MUT_DRStopRequest")();
     ros::Rate rate0(0.01);
     ros::Rate rate1(0.01);
     ros::Rate rate2(0.1);

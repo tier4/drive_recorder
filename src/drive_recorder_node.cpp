@@ -109,20 +109,20 @@ class DriveRecorder
 };
 
 int DriveRecorder::roundup(int num, int unit)
+{
+  ROS_ASSERT(unit > 0);
+  ROS_ASSERT(num > 0);
+  int result = num;
+  int remain = num % unit;
+  if( remain > 0 )
   {
-    ROS_ASSERT(unit > 0);
-    ROS_ASSERT(num > 0);
-    int result = num;
-    int remain = num % unit;
-    if( remain > 0 )
-    {
-      result = 1 + num / unit;
-      result *= unit;
-    }
-    ROS_ASSERT(result > 0);
-    return result;
+    result = 1 + num / unit;
+    result *= unit;
   }
-  
+  ROS_ASSERT(result > 0);
+  return result;
+}
+
 
 void DriveRecorder::timerCallback(const ros::TimerEvent& te)
 {

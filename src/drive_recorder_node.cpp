@@ -101,7 +101,14 @@ class DriveRecorder
   ros::Subscriber sub;
   ros::Subscriber sub2;
   //round up less than unit
-  static int roundup(int num, int unit)
+  int roundup(int num, int unit);
+
+  public:
+  //constrctor
+  DriveRecorder();
+};
+
+int DriveRecorder::roundup(int num, int unit)
   {
     ROS_ASSERT(unit > 0);
     ROS_ASSERT(num > 0);
@@ -116,40 +123,6 @@ class DriveRecorder
     return result;
   }
   
-  public:
-  //main function
-  void run();
-
-  //constrctor
-  DriveRecorder() : private_nh_("~")
-  {
-    int _before;
-    int _after;
-    int _bag_period;
-    int _polong_interval;
-    // parameter settings
-    private_nh_.param<int>("before_time", _before, default_before);
-    private_nh_.param<int>("after_time", _after,  default_after);
-    private_nh_.param<int>("bag_period", _bag_period, default_bag_period);
-    private_nh_.param<string>("log_dir", src_dirname_, "log");
-    private_nh_.param<string>("log_out", dst_dirname_, "backup");
-    private_nh_.param<int>("poling_interval", _polong_interval, default_poling_interval_);
-    poling_interval_ = ros::Duration(_polong_interval);
-    dst_dirname_ += "/";
-    ROS_INFO("%d %d %d %s %s", _before, _after, _bag_period, src_dirname_.c_str(), dst_dirname_.c_str());
-    //bag_period分切り上げる。
-    _after = roundup(_after, _bag_period);
-    _before = roundup(_before, _bag_period);
-    ros::Duration before(_before);
-    ros::Duration after(_after);
-
-    record_time_period_ = before + after;
-    timer_expire_period_ = after;
-    sub = n_.subscribe("record_cmd", 50, &DriveRecorder::recordCmdCallback, this);
-    sub2 = n_.subscribe("decision_maker/state", 50, &DriveRecorder::decisionMakerStateCallback, this);
-
-  }
-};
 
 void DriveRecorder::timerCallback(const ros::TimerEvent& te)
 {
@@ -250,16 +223,39 @@ void DriveRecorder::timerPolingCallback(const ros::TimerEvent& te){
   }
 }
 
-void DriveRecorder::run()
+DriveRecorder::DriveRecorder() : private_nh_("~")
 {
+  int _before;
+  int _after;
+  int _bag_period;
+  int _polong_interval;
+  // parameter settings
+  private_nh_.param<int>("before_time", _before, default_before);
+  private_nh_.param<int>("after_time", _after,  default_after);
+  private_nh_.param<int>("bag_period", _bag_period, default_bag_period);
+  private_nh_.param<string>("log_dir", src_dirname_, "log");
+  private_nh_.param<string>("log_out", dst_dirname_, "backup");
+  private_nh_.param<int>("poling_interval", _polong_interval, default_poling_interval_);
+  poling_interval_ = ros::Duration(_polong_interval);
+  dst_dirname_ += "/";
+  ROS_INFO("%d %d %d %s %s", _before, _after, _bag_period, src_dirname_.c_str(), dst_dirname_.c_str());
+  //bag_period分切り上げる。
+  _after = roundup(_after, _bag_period);
+  _before = roundup(_before, _bag_period);
+  ros::Duration before(_before);
+  ros::Duration after(_after);
+
+  record_time_period_ = before + after;
+  timer_expire_period_ = after;
+  sub = n_.subscribe("record_cmd", 50, &DriveRecorder::recordCmdCallback, this);
+  sub2 = n_.subscribe("decision_maker/state", 50, &DriveRecorder::decisionMakerStateCallback, this);
   timer_poling_ = n_.createTimer(poling_interval_, &DriveRecorder::timerPolingCallback, this);
-  ros::spin();
 }
 
 int main(int argc, char**argv)
 {
   ros::init(argc, argv, "drive_recoorder");
   DriveRecorder d;
-  d.run();
+  ros::spin();
   return 0;
 }

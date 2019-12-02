@@ -3,8 +3,9 @@
         <param name="before_time" value="600"/>
         <param name="after_time" value="60"/>
         <param name="bag_period" value="60"/>
+        <param name="poling_interval" value="2"/>
         <param name="log_dir" value="log"/>
-        <param name="out_dir" value="backup"/>
+        <param name="out_dir" value="./backup"/>
     </node>
     <node pkg="drive_recorder" name="drive_recorder_test" type="drive_recorder_test" output="screen"/>
 </launch>

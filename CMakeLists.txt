@@ -9,6 +9,9 @@ find_package(catkin REQUIRED COMPONENTS
   ros_observer
 )
 
+catkin_package(
+)
+
 #
 #buld
 #
@@ -17,8 +20,9 @@ include_directories(
 ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(drive_recorder_node src/drive_recorder_node.cpp
-)
+add_executable(drive_recorder_node src/drive_recorder_node.cpp)
+
+add_executable(drive_recorder_test src/drive_recorder_test.cpp)
 
 target_link_libraries(
   drive_recorder_node
@@ -29,7 +33,6 @@ target_link_libraries(
 #
 #test
 #
-add_executable(drive_recorder_test src/drive_recorder_test.cpp)
 
 target_link_libraries(
   drive_recorder_test

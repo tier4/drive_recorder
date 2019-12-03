@@ -21,7 +21,7 @@
 #include <ros_observer/ros_observer.h>
 #include <boost/interprocess/managed_shared_memory.hpp>
 #include <boost/interprocess/sync/interprocess_mutex.hpp>
-
+#include <gtest/gtest.h>
 
 using boost::interprocess::interprocess_mutex;
 using boost::interprocess::managed_shared_memory;

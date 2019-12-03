@@ -31,7 +31,7 @@ using std::to_string;
 class DriveRecorder 
 {
   //time that goes back after the timer expires.(sec)
-  ros::Duration record_time_period_;
+  ros::WallDuration record_time_period_;
   //time that created when the emergency has occured.(sec)
   ros::Duration timer_expire_period_;
   //directory name for ROSBAG output
@@ -127,9 +127,9 @@ int DriveRecorder::roundup(int num, int unit)
 void DriveRecorder::timerCallback(const ros::TimerEvent& te)
 {
   emflag_  = emergency_progress;
-  ros::Time timer_end   = ros::Time::now();
+  ros::WallTime timer_end   = ros::WallTime::now();
   //calcurate when we have to go back.
-  ros::Time timer_begin = timer_end - record_time_period_;
+  ros::WallTime timer_begin = timer_end - record_time_period_;
   ROS_INFO("drive recorder timer expired (%d:%d)-(%d:%d)", 
     timer_begin.sec, timer_begin.nsec,
     timer_end.sec, timer_end.nsec);
@@ -243,11 +243,9 @@ DriveRecorder::DriveRecorder() : private_nh_("~")
   //round up by bag_period
   _after = roundup(_after, _bag_period);
   _before = roundup(_before, _bag_period);
-  ros::Duration before(_before);
-  ros::Duration after(_after);
 
-  record_time_period_ = before + after;
-  timer_expire_period_ = after;
+  record_time_period_ = ros::WallDuration(_before + _after);
+  timer_expire_period_ = ros::Duration(_after);
   sub = n_.subscribe("record_cmd", 50, &DriveRecorder::recordCmdCallback, this);
   sub2 = n_.subscribe("decision_maker/state", 50, &DriveRecorder::decisionMakerStateCallback, this);
   timer_polling_ = n_.createTimer(polling_interval_, &DriveRecorder::timerPollingCallback, this);

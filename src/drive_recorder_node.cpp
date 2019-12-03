@@ -198,7 +198,8 @@ void DriveRecorder::stopRequested()
   startTimer();
 }
 
-void DriveRecorder::timerPolingCallback(const ros::TimerEvent& te){
+void DriveRecorder::timerPolingCallback(const ros::TimerEvent& te)
+{
   switch(emflag_)
   {
     case emergency_none:
@@ -239,7 +240,7 @@ DriveRecorder::DriveRecorder() : private_nh_("~")
   poling_interval_ = ros::Duration(_polong_interval);
   dst_dirname_ += "/";
   ROS_INFO("%d %d %d %s %s", _before, _after, _bag_period, src_dirname_.c_str(), dst_dirname_.c_str());
-  //bag_period分切り上げる。
+  //round up by bag_period
   _after = roundup(_after, _bag_period);
   _before = roundup(_before, _bag_period);
   ros::Duration before(_before);

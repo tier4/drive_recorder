@@ -38,11 +38,11 @@ class DriveRecorder
   string src_dirname_;
   //directory name for backup
   string dst_dirname_;
-  //poling interval (sec)
-  ros::Duration poling_interval_;
+  //polling interval (sec)
+  ros::Duration polling_interval_;
 
   //shared memory flag object
-  ShmDRStopRequest stopReqested_;
+  ShmDRStopRequest stop_requested_;
 
   //callback function for the timer from the emergency has occored
   void timerCallback(const ros::TimerEvent& te);
@@ -53,8 +53,8 @@ class DriveRecorder
   //one shot timer that starts when emergency occors
   ros::Timer timer_;
 
-  //main poling timer
-  ros::Timer timer_poling_;
+  //main polling timer
+  ros::Timer timer_polling_;
 
   //state values
   enum emergency_state
@@ -76,8 +76,8 @@ class DriveRecorder
   //callback function to subscribe from emergency_handler
   void recordCmdCallback(const std_msgs::Header header_msg);
 
-  //callback function for the poling timer
-  void timerPolingCallback(const ros::TimerEvent& te);
+  //callback function for the polling timer
+  void timerPollingCallback(const ros::TimerEvent& te);
 
   //start the emergency timer
   void startTimer();
@@ -95,8 +95,8 @@ class DriveRecorder
   const int default_after = 10;
   //default time to go back when the emergency occors.(sec)
   const int default_before = 10 * 60;
-  //poling interval in main loop(sec)
-  const int default_poling_interval_ = 1;
+  //polling interval in main loop(sec)
+  const int default_polling_interval_ = 1;
 
   ros::Subscriber sub;
   ros::Subscriber sub2;
@@ -184,7 +184,7 @@ void DriveRecorder::startTimer()
   {
     emflag_ = emergency_requested;
     ROS_INFO("start timer (%d) ", timer_expire_period_.sec );
-    timer_ = n_.createTimer(timer_expire_period_, &DriveRecorder::timerCallback, this, true);//一定時間後にtimerCallbackを呼ぶ。oneshot = trueなので一回で終了する。
+    timer_ = n_.createTimer(timer_expire_period_, &DriveRecorder::timerCallback, this, true);//oneshot = true, so timerCallbak will be called onece.
   }
   else
   {
@@ -198,13 +198,13 @@ void DriveRecorder::stopRequested()
   startTimer();
 }
 
-void DriveRecorder::timerPolingCallback(const ros::TimerEvent& te)
+void DriveRecorder::timerPollingCallback(const ros::TimerEvent& te)
 {
   switch(emflag_)
   {
     case emergency_none:
-      //ROS_INFO("timerPolingCallback 1");
-      if(stopReqested_.is_request_received())
+      //ROS_INFO("timerPollingCallback 1");
+      if(stop_requested_.is_request_received())
       {
         stopRequested();
       }
@@ -212,8 +212,8 @@ void DriveRecorder::timerPolingCallback(const ros::TimerEvent& te)
     case emergency_progress_done:
       //state: copying files has done.
       //waiting for shared memory flag is false and /decision_make_state is not VehicleEmergency.
-      //ROS_INFO("timerPolingCallback 2");
-      if(stopReqested_.is_request_received() == false && decision_maker_state_emergency_ == false)
+      //ROS_INFO("timerPollingCallback 2");
+      if(stop_requested_.is_request_received() == false && decision_maker_state_emergency_ == false)
       {
         ROS_INFO("emergency_progress_done -> none");
         emflag_ = emergency_none;
@@ -236,8 +236,8 @@ DriveRecorder::DriveRecorder() : private_nh_("~")
   private_nh_.param<int>("bag_period", _bag_period, default_bag_period);
   private_nh_.param<string>("log_dir", src_dirname_, "log");
   private_nh_.param<string>("log_out", dst_dirname_, "backup");
-  private_nh_.param<int>("poling_interval", _polong_interval, default_poling_interval_);
-  poling_interval_ = ros::Duration(_polong_interval);
+  private_nh_.param<int>("polling_interval", _polong_interval, default_polling_interval_);
+  polling_interval_ = ros::Duration(_polong_interval);
   dst_dirname_ += "/";
   ROS_INFO("%d %d %d %s %s", _before, _after, _bag_period, src_dirname_.c_str(), dst_dirname_.c_str());
   //round up by bag_period
@@ -250,7 +250,7 @@ DriveRecorder::DriveRecorder() : private_nh_("~")
   timer_expire_period_ = after;
   sub = n_.subscribe("record_cmd", 50, &DriveRecorder::recordCmdCallback, this);
   sub2 = n_.subscribe("decision_maker/state", 50, &DriveRecorder::decisionMakerStateCallback, this);
-  timer_poling_ = n_.createTimer(poling_interval_, &DriveRecorder::timerPolingCallback, this);
+  timer_polling_ = n_.createTimer(polling_interval_, &DriveRecorder::timerPollingCallback, this);
 }
 
 int main(int argc, char**argv)

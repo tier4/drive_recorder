@@ -139,7 +139,7 @@ void DriveRecorder::timerCallback(const ros::TimerEvent& te)
   //struct stat stat_buf;
   fs::path src_directory(src_dirname_);
   fs::directory_iterator end;
-  fs::create_directory(dst_directory);
+  fs::create_directories(dst_directory);
   //enumrate the log directoy 
   for( fs::directory_iterator src_file(src_directory); src_file != end; src_file++)
   {
@@ -234,8 +234,8 @@ DriveRecorder::DriveRecorder() : private_nh_("~")
   private_nh_.param<int>("before_time", _before, default_before);
   private_nh_.param<int>("after_time", _after,  default_after);
   private_nh_.param<int>("bag_period", _bag_period, default_bag_period);
-  private_nh_.param<string>("log_dir", src_dirname_, "log");
-  private_nh_.param<string>("log_out", dst_dirname_, "backup");
+  private_nh_.param<string>("log_dir", src_dirname_, "~/.ros/log");
+  private_nh_.param<string>("log_out", dst_dirname_, "~/.ros/log/backup");
   private_nh_.param<int>("polling_interval", _polong_interval, default_polling_interval_);
   polling_interval_ = ros::Duration(_polong_interval);
   dst_dirname_ += "/";

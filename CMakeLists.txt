@@ -21,13 +21,13 @@ install(
 #buld
 #
 include_directories(
-# include
+include
 ${catkin_INCLUDE_DIRS}
 )
 
 add_executable(drive_recorder_node src/drive_recorder_node.cpp)
 
-add_executable(drive_recorder_test src/drive_recorder_test.cpp)
+add_executable(test_drive_recorder test/test_drive_recorder.cpp)
 
 target_link_libraries(
   drive_recorder_node
@@ -40,7 +40,7 @@ target_link_libraries(
 #
 
 target_link_libraries(
-  drive_recorder_test
+  test_drive_recorder
   ${catkin_LIBRARIES}
   rt ${Boost_LIBRARIES}
 )

@@ -58,9 +58,9 @@ int main(int argc, char**argv){
         recordcmd_pub_.publish(header_msg);
         rate0.sleep();
         ROS_INFO("stop request start");
-        *stopReq = true;//共有メモリのフラグを立てる
+        *stopReq = true;//shared memory flag
         rate1.sleep();
-        *stopReq = false;//共有メモリのフラグを落とす
+        *stopReq = false;//shared memory flag
         ROS_INFO("stop request end");
         rate2.sleep();
         ROS_INFO("publish2");

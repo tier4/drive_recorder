@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>drive_recorder</name>
+  <version>0.0.0</version>
+  <description>The drive_recorder package</description>
+  <maintainer email="nobuo.takamasa@tier4.jp">Nobuo TAKAMASA</maintainer>
+  <author email="nobuo.takamasa@tier4.jp">Nobuo TAKAMASA</author>
+
+  <license>Apache 2</license>
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>ros_observer</depend>
+  <depend>roscpp</depend>
+  <depend>std_msgs</depend>
+</package>
+

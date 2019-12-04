@@ -63,9 +63,9 @@ class DriveRecorder
   enum emergency_state
   {
     emergency_none = 0,//default state 
-    emergency_requested = 1,//wating for the timer
-    emergency_progress = 2,//copying 
-    emergency_progress_done = 3,//copying done. wait for emergecy解除待ち
+    emergency_requested = 1,//wating for the timer expiring.
+    emergency_progress = 2,//copying bag files.
+    emergency_progress_done = 3,//copying done. waiting for the emergecy to clear.
   };
   //current state
   emergency_state emflag_ = emergency_none;

@@ -238,11 +238,10 @@ DriveRecorder::DriveRecorder() : private_nh_("~")
   private_nh_.param<int>("before_time", _before, default_before);
   private_nh_.param<int>("after_time", _after,  default_after);
   private_nh_.param<int>("bag_period", _bag_period, default_bag_period);
-  private_nh_.param<string>("log_dir", src_dirname_, "~/.ros/log");
-  private_nh_.param<string>("log_out", dst_dirname_, "~/.ros/log/backup");
+  private_nh_.param<string>("log_dir", src_dirname_, "/tmp/.ros/log");
   private_nh_.param<int>("polling_interval", _polong_interval, default_polling_interval_);
   polling_interval_ = ros::Duration(_polong_interval);
-  dst_dirname_ += "/";
+  dst_dirname_ = src_dirname_ + "/backup/";
   ROS_INFO("%d %d %d %s %s", _before, _after, _bag_period, src_dirname_.c_str(), dst_dirname_.c_str());
   //round up by bag_period
   _after = roundup(_after, _bag_period);

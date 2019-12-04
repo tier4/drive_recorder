@@ -244,7 +244,6 @@ DriveRecorder::DriveRecorder() : private_nh_("~")
   dst_dirname_ = src_dirname_ + "/backup/";
   ROS_INFO("%d %d %d %s %s", _before, _after, _bag_period, src_dirname_.c_str(), dst_dirname_.c_str());
   //round up by bag_period
-  _after = roundup(_after, _bag_period);
   _before = roundup(_before, _bag_period);
 
   record_time_period_ = ros::WallDuration(_before + _after);

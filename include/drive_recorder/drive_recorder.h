@@ -157,9 +157,16 @@ void DriveRecorder::timerCallback(const ros::TimerEvent& te)
       if( diff > 0 )
       {
         auto dst_filename = dst_dirname + src_file->path().filename().string();
-        ROS_INFO("log file:%s -> %s mod time:%d(%d)", src_file->path().string().c_str(), dst_filename.c_str(), (int)mod_t, (int)diff );
         fs::path dst(dst_filename);
-        fs::copy_file(src_file->path(), dst);
+        ROS_INFO("log file:%s -> %s mod time:%d(%d)", src_file->path().string().c_str(), dst_filename.c_str(), (int)mod_t, (int)diff );
+        if( ext == ".bag" )
+        {
+            fs::rename(src_file->path(), dst);
+        }
+        else
+        {
+            fs::copy_file(src_file->path(), dst);
+        }
       }
     }
     catch(boost::filesystem::filesystem_error& e) //rosbag execute asyncronouse. so rosbag may rename .active to .bag. 
@@ -172,13 +179,12 @@ void DriveRecorder::timerCallback(const ros::TimerEvent& te)
 }
 void DriveRecorder::decisionMakerStateCallback(const std_msgs::String& msg)
 {
-  ROS_INFO("/decision_maker/state subscribed (%s) ", msg.data.c_str());
   decision_maker_state_emergency_ = ( msg.data.find("VehicleEmergency") == string::npos ) ? false : true;
+  ROS_INFO("/decision_maker/state subscribed (%s, %d) ", msg.data.c_str(), decision_maker_state_emergency_);
 }
 void DriveRecorder::recordCmdCallback(const std_msgs::Header header_msg)
 {
   ROS_INFO("drive recorder subscribed (%d:%d) ", header_msg.stamp.sec, header_msg.stamp.nsec);
-  //ROS_ASSERT(emflag_ == none);
   startTimer();
 }
 
@@ -207,7 +213,6 @@ void DriveRecorder::timerPollingCallback(const ros::TimerEvent& te)
   switch(emflag_)
   {
     case emergency_none:
-      //ROS_INFO("timerPollingCallback 1");
       if(stop_requested_.is_request_received())
       {
         stopRequested();
@@ -216,7 +221,6 @@ void DriveRecorder::timerPollingCallback(const ros::TimerEvent& te)
     case emergency_progress_done:
       //state: copying files has done.
       //waiting for shared memory flag is false and /decision_make_state is not VehicleEmergency.
-      //ROS_INFO("timerPollingCallback 2");
       if(stop_requested_.is_request_received() == false && decision_maker_state_emergency_ == false)
       {
         ROS_INFO("emergency_progress_done -> none");
@@ -238,10 +242,15 @@ DriveRecorder::DriveRecorder() : private_nh_("~")
   private_nh_.param<int>("before_time", _before, default_before);
   private_nh_.param<int>("after_time", _after,  default_after);
   private_nh_.param<int>("bag_period", _bag_period, default_bag_period);
-  private_nh_.param<string>("log_dir", src_dirname_, "/tmp/.ros/log");
+  private_nh_.param<string>("log_dir", src_dirname_, "/tmp/.ros/log/rosbag/");
   private_nh_.param<int>("polling_interval", _polong_interval, default_polling_interval_);
   polling_interval_ = ros::Duration(_polong_interval);
-  dst_dirname_ = src_dirname_ + "/backup/";
+  dst_dirname_ = src_dirname_;
+  src_dirname_ += "latest";
+
+  fs::path src_directory(src_dirname_);
+  fs::create_directories(src_directory);
+
   ROS_INFO("%d %d %d %s %s", _before, _after, _bag_period, src_dirname_.c_str(), dst_dirname_.c_str());
   //round up by bag_period
   _before = roundup(_before, _bag_period);

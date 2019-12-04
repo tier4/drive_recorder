@@ -6,6 +6,5 @@
         <param name="poling_interval" value="2"/>
         <param name="log_dir" value="$(env HOME)/.ros/log/latest"/>
     </node>
-    <node pkg="drive_recorder" name="drive_recorder_test" type="drive_recorder_test" output="screen"/>
 </launch>
 

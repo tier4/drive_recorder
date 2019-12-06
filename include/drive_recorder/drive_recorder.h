@@ -60,15 +60,15 @@ class DriveRecorder
   ros::Timer timer_polling_;
 
   //state values
-  enum emergency_state
+  enum class emergency_state
   {
     emergency_none = 0,//default state 
-    emergency_requested = 1,//wating for the timer expiring.
-    emergency_progress = 2,//copying bag files.
-    emergency_progress_done = 3,//copying done. waiting for the emergecy to clear.
+    emergency_requested,//wating for the timer expiring.
+    emergency_progress,//copying bag files.
+    emergency_progress_done,//copying done. waiting for the emergecy to clear.
   };
   //current state
-  emergency_state emflag_ = emergency_none;
+  emergency_state emflag_ = emergency_state::emergency_none;
 
   //flag that shows decision_make_state is emergency
   bool decision_maker_state_emergency_ = false;
@@ -130,7 +130,7 @@ int DriveRecorder::roundup(int num, int unit)
 
 void DriveRecorder::timerCallback(const ros::TimerEvent& te)
 {
-  emflag_  = emergency_progress;
+  emflag_  = emergency_state::emergency_progress;
   ros::WallTime timer_end   = ros::WallTime::now();
   //calcurate when we have to go back.
   ros::WallTime timer_begin = timer_end - record_time_period_;
@@ -175,6 +175,7 @@ void DriveRecorder::timerCallback(const ros::TimerEvent& te)
     }
   }
   ROS_DEBUG("emergency_done");
+  emflag_ = emergency_state::emergency_progress_done;
 }
 void DriveRecorder::decisionMakerStateCallback(const std_msgs::String& msg)
 {
@@ -189,8 +190,9 @@ void DriveRecorder::recordCmdCallback(const std_msgs::Header header_msg)
 
 void DriveRecorder::startTimer()
 {
-  if( emflag_ == emergency_none )
+  if( emflag_ == emergency_state::emergency_none )
   {
+    emflag_ = emergency_state::emergency_requested;
     ROS_DEBUG("start timer (%d) ", timer_expire_period_.sec );
     timer_ = n_.createTimer(timer_expire_period_, &DriveRecorder::timerCallback, this, true);//oneshot = true, so timerCallbak will be called onece.
   }
@@ -210,18 +212,19 @@ void DriveRecorder::timerPollingCallback(const ros::TimerEvent& te)
 {
   switch(emflag_)
   {
-    case emergency_none:
+    case emergency_state::emergency_none:
       if(stop_requested_.is_request_received())
       {
         stopRequested();
       }
       break;
-    case emergency_progress_done:
+    case emergency_state::emergency_progress_done:
       //state: copying files has done.
       //waiting for shared memory flag is false and /decision_make_state is not VehicleEmergency.
       if(stop_requested_.is_request_received() == false && decision_maker_state_emergency_ == false)
       {
         ROS_DEBUG("emergency_progress_done -> none");
+        emflag_ = emergency_state::emergency_none;
       }
       break;       
     default:

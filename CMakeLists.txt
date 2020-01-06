@@ -12,11 +12,6 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 )
 
-install(
-  DIRECTORY launch/
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
-)
-
 #
 #buld
 #
@@ -34,6 +29,26 @@ target_link_libraries(
   ${catkin_LIBRARIES}
   rt ${Boost_LIBRARIES}
 )
+
+#
+# Install
+#
+
+install(
+  DIRECTORY launch/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+  PATTERN ".svn" EXCLUDE)
+
+## Install executables and/or libraries
+install(TARGETS drive_recorder_node
+        ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+        LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+        RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
+# Install project namespaced headers
+install(DIRECTORY include/drive_recorder/
+        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
+
 
 #
 #test
